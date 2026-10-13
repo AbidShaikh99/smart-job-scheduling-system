@@ -4,9 +4,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
-
+from accounts.permissions import IsAdminRole
 from utils.responses import error_response, success_response
-from .serializers import LoginSerializer, RegisterSerializer
+from .serializers import (LoginSerializer, RegisterSerializer, AdminCreateSchedulerSerializer)
 
 
 class RegisterAPIView(APIView):
@@ -71,7 +71,33 @@ class LoginAPIView(APIView):
             },
             status_code=status.HTTP_200_OK,
         )
+class AdminCreateSchedulerAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminRole]
 
+    def post(self, request):
+        serializer = AdminCreateSchedulerSerializer(
+            data=request.data
+        )
+
+        if not serializer.is_valid():
+            return error_response(
+                message="Validation failed.",
+                data=serializer.errors,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        scheduler = serializer.save()
+
+        return success_response(
+            message="Scheduler created successfully.",
+            data={
+                "id": scheduler.id,
+                "username": scheduler.username,
+                "email": scheduler.email,
+                "role": scheduler.role,
+            },
+            status_code=status.HTTP_201_CREATED,
+        )
 
 class LogoutAPIView(APIView):
     permission_classes = [IsAuthenticated]
